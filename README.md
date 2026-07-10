@@ -37,11 +37,19 @@ pip install "ttsproof[asr]"     # + faster-whisper for pronunciation gating
 
 ## Benchmark any TTS engine in one command
 
-TTSProof ships a **built-in corpus of 500+ edge cases across 30 categories**
-— numbers, decimals, currencies, dates, ISO timestamps, clock times, phone
-numbers, URLs, emails, IP/MAC addresses, Roman numerals, abbreviations,
-acronyms, single letters, Greek, Norwegian, mixed-language lines, math,
-punctuation abuse, hallucination traps, emoji, code snippets, and more:
+TTSProof ships a **built-in corpus of 817 curated edge cases across 39
+categories** — numbers, decimals, currencies, dates, ISO timestamps, clock
+times, time zones, phone numbers, URLs, emails, IP/MAC addresses, file paths,
+Roman numerals, ordinals, units, abbreviations, acronyms, single letters,
+**pronunciation torture words** (Worcestershire, synecdoche, colonel…),
+**proper names** (Reykjavík, Nguyễn, Tchaikovsky…), scientific/medical
+vocabulary, tongue twisters, homographs, Greek, Norwegian, mixed-language
+lines, math, punctuation abuse, hallucination traps, emoji, SQL/JSON/markup,
+and more.
+
+The corpus is **versioned independently of the software** (this release:
+**Benchmark Corpus 1.0**) — published scores stay comparable across tool
+updates, and every report records both versions:
 
 ```bash
 # your engine as a command template ({text} in, {out} wav path out):

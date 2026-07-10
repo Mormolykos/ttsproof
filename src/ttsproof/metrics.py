@@ -12,9 +12,17 @@ Ported from the QA harness evaluated in DOI 10.5281/zenodo.20757553.
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 
 from .normalize import normalize_text, number_to_words, ONES
+
+
+def _fold_diacritics(text: str) -> str:
+    """Reykjavík == Reykjavik, Göteborg == Goteborg — applied to BOTH sides,
+    so languages that keep their marks (å in Norwegian) still compare equal."""
+    decomposed = unicodedata.normalize("NFKD", text)
+    return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
 
 
 def levenshtein(seq_a: list[str] | str, seq_b: list[str] | str) -> int:
@@ -111,7 +119,8 @@ def compare_text(text: str) -> str:
     normalized = normalize_text(normalized)
     normalized = normalized.lower().replace("&", " and ")
     normalized = _canonical_acronym_phrases(normalized)
-    normalized = re.sub(r"[^a-z0-9α-ωά-ώæøåäöüéèêçñß\s]", " ", normalized, flags=re.IGNORECASE)
+    normalized = _fold_diacritics(normalized)
+    normalized = re.sub(r"[^a-z0-9α-ωæøß\s]", " ", normalized, flags=re.IGNORECASE)
     return re.sub(r"\s+", " ", normalized).strip()
 
 

@@ -9,7 +9,7 @@ Text-to-Speech Systems" — DOI 10.5281/zenodo.20757553.
 """
 
 from .audio import AudioReport, check_wav
-from .cases import builtin_cases, list_categories, write_jsonl
+from .cases import CORPUS_VERSION, builtin_cases, list_categories, write_jsonl
 from .config import Config, DEFAULT
 from .metrics import (cer, compare_text, equivalence_compare, keyword_coverage,
                       levenshtein, wer)
@@ -26,11 +26,11 @@ from .runner import (
     write_reports,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "AudioReport", "check_wav", "Config", "DEFAULT",
-    "builtin_cases", "list_categories", "write_jsonl",
+    "CORPUS_VERSION", "builtin_cases", "list_categories", "write_jsonl",
     "cer", "compare_text", "equivalence_compare", "keyword_coverage",
     "levenshtein", "wer",
     "classify_input", "is_vocalization", "normalize_text", "retry_text",

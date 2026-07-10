@@ -224,7 +224,7 @@ def summarize(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def write_reports(rows: list[dict[str, Any]], report_dir: str | Path,
-                  html: bool = True) -> dict[str, Any]:
+                  html: bool = True, meta: dict[str, Any] | None = None) -> dict[str, Any]:
     out = Path(report_dir)
     out.mkdir(parents=True, exist_ok=True)
     with (out / "report.csv").open("w", newline="", encoding="utf-8") as handle:
@@ -235,6 +235,7 @@ def write_reports(rows: list[dict[str, Any]], report_dir: str | Path,
     report = {
         "ok": summarize(rows)["ok"],
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        **({"meta": meta} if meta else {}),
         "summary": summarize(rows),
         "categories": category_scores(rows),
         "samples": rows,

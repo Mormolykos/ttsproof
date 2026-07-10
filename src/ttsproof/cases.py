@@ -24,6 +24,11 @@ from .normalize import GREEK_LETTERS, LETTER_WORDS
 
 STRICT, KEYWORDS, STRUCTURAL = "strict", "keywords", "structural"
 
+# The corpus is versioned INDEPENDENTLY of the software so published scores
+# stay comparable: "ttsproof 0.3.0 / Corpus 1.0". Any change to case content
+# bumps this version.
+CORPUS_VERSION = "1.0"
+
 
 def _mk(cat: str, i: int, text: str, policy: str, language: str = "en",
         category_hint: str = "") -> dict[str, Any]:
@@ -41,7 +46,7 @@ def _numbers(rng) -> list[dict]:
     values = [0, 1, 7, 10, 11, 13, 15, 19, 20, 21, 40, 55, 99, 100, 101, 110,
               123, 500, 999, 1000, 1001, 1234, 9999, 10000, 54321, 100000,
               123456, 999999, 1000000, 2500000]
-    values += sorted(rng.sample(range(2, 10**6), 30))
+    values += sorted(rng.sample(range(2, 10**6), 50))
     return [_mk("numbers", i, str(v), STRICT, category_hint="number")
             for i, v in enumerate(values)]
 
@@ -62,7 +67,9 @@ def _currencies(rng) -> list[dict]:
         "He paid £3,500 for it.", "Tickets from $19.",
         "A budget of $2.4 million.", "Around 900 kr per night.",
     ]
-    templates += [f"${rng.randrange(2, 999)}.{rng.randrange(0, 99):02d}" for _ in range(12)]
+    templates += [f"${rng.randrange(2, 999)}.{rng.randrange(0, 99):02d}" for _ in range(20)]
+    templates += [f"€{rng.randrange(2, 999)}" for _ in range(6)]
+    templates += [f"{rng.randrange(50, 5000)} kr" for _ in range(6)]
     return [_mk("currencies", i, t, KEYWORDS) for i, t in enumerate(dict.fromkeys(templates))]
 
 
@@ -84,7 +91,7 @@ def _dates(rng) -> list[dict]:
     ]
     months = ["January", "February", "March", "April", "May", "June", "July",
               "August", "September", "October", "November", "December"]
-    for _ in range(14):
+    for _ in range(30):
         texts.append(f"{rng.choice(months)} {rng.randrange(1, 28)}, {rng.randrange(1900, 2030)}")
     return [_mk("dates", i, t, STRICT, category_hint="date_time")
             for i, t in enumerate(dict.fromkeys(texts))]
@@ -332,6 +339,151 @@ def _units(rng) -> list[dict]:
     return [_mk("units", i, t, KEYWORDS) for i, t in enumerate(dict.fromkeys(texts))]
 
 
+def _hard_words() -> list[dict]:
+    """Pronunciation torture: words that break TTS front-ends and prosody.
+    Single rare words are also hard for ASR — expect honest quarantine here."""
+    words = [
+        "observatory", "observational", "observant", "observance",
+        "Worcestershire", "Gloucestershire", "Leicestershire",
+        "February", "Wednesday", "colonel", "choir", "epitome", "hyperbole",
+        "segue", "quay", "cache", "genre", "gauge", "debris", "awry",
+        "niche", "mischievous", "anemone", "onomatopoeia", "synecdoche",
+        "isthmus", "squirrel", "rural", "sixth", "sixths", "strengths",
+        "phenomenon", "laboratory", "deteriorate", "particularly",
+        "regularly", "february", "library", "temperature", "vegetable",
+        "comfortable", "vulnerable", "miniature", "jewelry", "brewery",
+        "prescription", "cinnamon", "anonymity", "remuneration",
+        "antidisestablishmentarianism", "otorhinolaryngologist",
+        "thorough", "through", "though", "thought", "tough", "trough",
+        "draught", "plough", "hiccough", "lieutenant", "sergeant",
+        "yacht", "subtle", "receipt", "indict", "victuals", "viscount",
+        "asthma", "phlegm", "rendezvous", "silhouette", "bourgeois",
+        "entrepreneur", "questionnaire", "connoisseur", "hors d'oeuvre",
+        "et cetera", "espresso", "prerogative", "supposedly",
+    ]
+    return [_mk("hard_words", i, w, STRICT) for i, w in enumerate(dict.fromkeys(words))]
+
+
+def _proper_names() -> list[dict]:
+    names = ["Thessaloniki", "Reykjavík", "Göteborg", "Łódź", "Ljubljana",
+             "Siobhán", "Nguyễn", "Tchaikovsky", "Szczecin", "Kraków",
+             "Zürich", "München", "Marseille", "Edinburgh", "Gloucester",
+             "Yosemite", "Oaxaca", "Phuket", "Beijing", "Kyiv",
+             "Dostoevsky", "Nietzsche", "Kierkegaard", "Bach", "Chopin",
+             "Dvořák", "Sibelius", "Vivaldi", "Michelangelo", "Van Gogh",
+             "Schwarzenegger", "Galifianakis", "Papadopoulos", "Ioannidis",
+             "She met Mr. Nguyễn in Kraków.", "Tchaikovsky was born in 1840.",
+             "The flight to Reykjavík was delayed.",
+             "He studied in Göteborg and Zürich."]
+    return [_mk("proper_names", i, n, STRICT) for i, n in enumerate(names)]
+
+
+def _scientific_terms() -> list[dict]:
+    words = ["electroencephalography", "spectrophotometer", "photolithography",
+             "electromagnetism", "microarchitecture", "hyperparameter",
+             "interferometer", "quaternion", "eigenvalue", "stoichiometry",
+             "mitochondria", "deoxyribonucleic", "photosynthesis",
+             "thermodynamics", "superconductivity", "nanotechnology",
+             "crystallography", "chromatography", "spectroscopy",
+             "The eigenvalues of the matrix are all positive.",
+             "Photosynthesis converts light into chemical energy.",
+             "We measured it with an interferometer."]
+    return [_mk("scientific_terms", i, w, STRICT) for i, w in enumerate(words)]
+
+
+def _medical_chemical() -> list[dict]:
+    """ASR is weak here too — quarantine-heavy by design; needs human review."""
+    words = ["acetaminophen", "ibuprofen", "methylprednisolone", "amoxicillin",
+             "epinephrine", "acetylcholine", "benzodiazepine", "hemoglobin",
+             "gastroenteritis", "otolaryngology", "pneumonia",
+             "conjunctivitis", "anesthesia", "arrhythmia",
+             "sodium chloride", "potassium permanganate", "sulfuric acid",
+             "carbon dioxide", "hydrochloric acid", "titanium dioxide",
+             "ethylenediaminetetraacetic acid", "polytetrafluoroethylene",
+             "Take two ibuprofen with water.", "The test showed low hemoglobin."]
+    return [_mk("medical_chemical", i, w, STRICT) for i, w in enumerate(words)]
+
+
+def _tongue_twisters() -> list[dict]:
+    texts = ["She sells seashells by the seashore.",
+             "Peter Piper picked a peck of pickled peppers.",
+             "How can a clam cram in a clean cream can?",
+             "Six sleek swans swam swiftly southwards.",
+             "Fred fed Ted bread, and Ted fed Fred bread.",
+             "A big black bug bit a big black bear.",
+             "Can you can a can as a canner can can a can?",
+             "I saw Susie sitting in a shoeshine shop.",
+             "Fuzzy Wuzzy was a bear without any hair.",
+             "Betty bought a bit of better butter.",
+             "The thirty-three thieves thought they thrilled the throne.",
+             "Truly rural, truly rural, truly rural.",
+             "Irish wristwatch, Swiss wristwatch.",
+             "Pad kid poured curd pulled cod.",
+             "The seething sea ceaseth and thus the seething sea sufficeth us."]
+    return [_mk("tongue_twisters", i, t, STRICT) for i, t in enumerate(texts)]
+
+
+def _homographs() -> list[dict]:
+    texts = ["He read the read book he had already read.",
+             "The bandage was wound around the wound.",
+             "I object to that object.",
+             "Lead paint is heavier than a lead pencil.",
+             "Live wires are dangerous where you live.",
+             "The dove dove into the bushes.",
+             "The farm was used to produce produce.",
+             "The dump was so full it had to refuse more refuse.",
+             "The soldier decided to desert his dessert in the desert.",
+             "A bass was painted on the head of the bass drum.",
+             "The insurance was invalid for the invalid.",
+             "They were too close to the door to close it.",
+             "The wind was too strong to wind the sail.",
+             "After a number of injections my jaw got number.",
+             "He could not subject the subject to the test.",
+             "The present is a good time to present the present.",
+             "I did not project the project results correctly.",
+             "Please record the record in the record books.",
+             "The buck does funny things when the does are present.",
+             "They will not permit him to get a permit."]
+    return [_mk("homographs", i, t, STRICT) for i, t in enumerate(texts)]
+
+
+def _timezones() -> list[dict]:
+    texts = ["3 PM UTC", "9:00 CET", "noon EST", "17:00 GMT+2",
+             "The call is at 4 PM PST.", "Launch at 09:30 UTC.",
+             "We open at 8 AM Eastern.", "Midnight UTC−5.",
+             "The meeting is 14:00 CEST, 8:00 AM EDT."]
+    return [_mk("timezones", i, t, KEYWORDS) for i, t in enumerate(texts)]
+
+
+def _paths_files() -> list[dict]:
+    texts = ["C:\\Users\\admin\\Documents\\report.docx",
+             "/usr/local/bin/python3", "~/projects/app/main.py",
+             "..\\backup\\old_version", "/etc/nginx/nginx.conf",
+             "D:\\Games\\saves\\slot_01.sav",
+             "Open config.yaml and settings.json.",
+             "The file final_report_v2_FINAL(3).pdf was attached.",
+             "Rename IMG_20260710_123456.jpg first.",
+             "backup_2026-07-10.tar.gz", "requirements.txt", "setup.py",
+             "index.html", "styles.min.css", "data_export.csv"]
+    return [_mk("paths_files", i, t, STRUCTURAL) for i, t in enumerate(texts)]
+
+
+def _markup() -> list[dict]:
+    texts = ['SELECT id, name FROM users WHERE age > 21;',
+             "DROP TABLE students;--",
+             '{"name": "test", "count": 42, "tags": ["a", "b"]}',
+             '{"nested": {"deep": {"deeper": null}}}',
+             "<div class=\"container\"><p>Hello</p></div>",
+             "<xml><item id='1'/></xml>",
+             "key: value\nlist:\n  - one\n  - two",
+             "# Heading\n**bold** and *italic* and `code`",
+             "[link text](https://example.com)",
+             "def f(x):\n    return x ** 2",
+             "npm install --save-dev @types/node",
+             "docker run -it --rm -p 8080:80 nginx"]
+    return [_mk("markup", i, t, STRUCTURAL) for i, t in enumerate(texts)]
+
+
 def builtin_cases(categories: list[str] | None = None,
                   limit_per_category: int = 0,
                   seed: int = 20260710) -> list[dict[str, Any]]:
@@ -345,6 +497,9 @@ def builtin_cases(categories: list[str] | None = None,
         _mixed_language(), _math(), _punctuation_abuse(), _single_words(),
         _vocalizations(), _hallucination_traps(), _unicode_emoji(), _code(),
         _long_sentences(), _ordinals_fractions(rng), _units(rng),
+        _hard_words(), _proper_names(), _scientific_terms(),
+        _medical_chemical(), _tongue_twisters(), _homographs(),
+        _timezones(), _paths_files(), _markup(),
     ]
     cases: list[dict[str, Any]] = []
     for group in groups:

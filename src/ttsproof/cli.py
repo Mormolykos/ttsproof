@@ -19,7 +19,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-from .cases import builtin_cases, list_categories, write_jsonl
+from . import __version__
+from .cases import CORPUS_VERSION, builtin_cases, list_categories, write_jsonl
 from .runner import (compare_reports, load_cases_jsonl, qa_pairs, qa_sample,
                      qa_synthesize, regression, write_reports)
 
@@ -54,8 +55,10 @@ def _select_cases(args: argparse.Namespace) -> list[dict]:
 
 def _print_scoreboard(report: dict) -> None:
     s = report["summary"]
+    meta = report.get("meta", {})
+    corpus = f" · Corpus {meta['corpus_version']}" if meta.get("corpus_version") else ""
     print("\n" + "=" * 58)
-    print(f"  TTSProof benchmark — {s['total']} samples")
+    print(f"  TTSProof {__version__}{corpus} — {s['total']} samples")
     print("=" * 58)
     for cat, c in report["categories"].items():
         score = f"{c['score']*100:5.1f}%" if c.get("score") is not None else "  n/a "
@@ -161,7 +164,8 @@ def main(argv: list[str] | None = None) -> int:
 
             rows = qa_synthesize(cases, synthesize, args.out / "audio",
                                  asr=asr, progress=progress)
-        report = write_reports(rows, args.out)
+        report = write_reports(rows, args.out, meta={
+            "ttsproof_version": __version__, "corpus_version": CORPUS_VERSION})
         _print_scoreboard(report)
         print(f"reports: {args.out.resolve()}  (report.html for the pretty one)")
         return 0 if report["ok"] else 1

@@ -32,9 +32,20 @@ class FakeASR:
 
 def test_corpus_size_and_unique_ids():
     cases = builtin_cases()
-    assert len(cases) >= 500, f"corpus too small: {len(cases)}"
+    assert len(cases) >= 750, f"corpus too small: {len(cases)}"
     ids = [c["id"] for c in cases]
     assert len(ids) == len(set(ids))
+
+
+def test_corpus_version_declared():
+    from ttsproof import CORPUS_VERSION
+    assert CORPUS_VERSION == "1.0"
+
+
+def test_diacritic_folding_equivalence():
+    from ttsproof import equivalence_compare
+    assert equivalence_compare("Reykjavík", "Reykjavik")["equivalent"]
+    assert equivalence_compare("Göteborg", "Goteborg")["equivalent"]
 
 
 def test_corpus_policies_valid():
