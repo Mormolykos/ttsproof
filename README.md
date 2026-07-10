@@ -31,8 +31,61 @@ and published as a citable technical report:
 ## Install
 
 ```bash
-pip install ttsproof            # structural checks + metrics
+pip install ttsproof            # structural checks + metrics + benchmark corpus
 pip install "ttsproof[asr]"     # + faster-whisper for pronunciation gating
+```
+
+## Benchmark any TTS engine in one command
+
+TTSProof ships a **built-in corpus of 500+ edge cases across 30 categories**
+— numbers, decimals, currencies, dates, ISO timestamps, clock times, phone
+numbers, URLs, emails, IP/MAC addresses, Roman numerals, abbreviations,
+acronyms, single letters, Greek, Norwegian, mixed-language lines, math,
+punctuation abuse, hallucination traps, emoji, code snippets, and more:
+
+```bash
+# your engine as a command template ({text} in, {out} wav path out):
+ttsproof benchmark --cmd "mytts --text {text} --wav {out}"
+
+# or score audio you already generated (files named <case_id>.wav):
+ttsproof generate --out cases.jsonl        # export the corpus, synthesize it your way
+ttsproof benchmark --wav-dir ./my_audio
+```
+
+You get a category scoreboard in the terminal…
+
+```
+  numbers                 98.3%   59/60 decided
+  dates                   96.7%   29/30 decided
+  urls                    88.9%   8/9 decided   (+0 quarantined)
+  norwegian               95.0%   19/20 decided
+  ----------------------------------------------------------
+  OVERALL 96.1%   pass=485 fail=20 quarantine=23
+```
+
+…plus `report.html` — a self-contained page with score bars, every failure's
+waveform, an audio player, and what the ASR actually heard.
+
+Each category is scored by an honest **policy**: `strict` (unambiguous spoken
+form — equivalence-aware WER), `keywords` (URLs/currencies have many valid
+readings — key tokens must survive the round trip), or `structural` (emoji and
+punctuation storms have no meaningful transcript — the audio just has to
+survive). No fake failures from formatting differences.
+
+**CI regression gate:**
+
+```bash
+ttsproof regress baseline/report.json current/report.json --tolerance 1.0
+# exit 1 + category-level diff when quality drops:
+#   REGRESSION DETECTED:
+#     OVERALL: 96.2% -> 94.7%  (-1.5 pp)
+#     numbers: 99.1% -> 95.0%  (-4.1 pp)
+```
+
+**Compare engines:**
+
+```bash
+ttsproof compare xtts/report.json fish/report.json kokoro/report.json
 ```
 
 ## Quickstart

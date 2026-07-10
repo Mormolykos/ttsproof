@@ -111,8 +111,28 @@ def compare_text(text: str) -> str:
     normalized = normalize_text(normalized)
     normalized = normalized.lower().replace("&", " and ")
     normalized = _canonical_acronym_phrases(normalized)
-    normalized = re.sub(r"[^a-z0-9α-ωά-ώ\s]", " ", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"[^a-z0-9α-ωά-ώæøåäöüéèêçñß\s]", " ", normalized, flags=re.IGNORECASE)
     return re.sub(r"\s+", " ", normalized).strip()
+
+
+_STOPWORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "at",
+              "is", "was", "for", "it", "with", "that", "this"}
+
+
+def keyword_coverage(expected: str, transcript: str) -> float:
+    """Fraction of salient expected tokens that appear in the transcript.
+
+    Used for categories with multiple valid readings (URLs, currencies, ...):
+    instead of exact spoken-form matching, the key content words/digits must
+    survive the TTS -> ASR round trip.
+    """
+    exp_tokens = [t for t in compare_text(expected).split()
+                  if len(t) >= 2 and t not in _STOPWORDS]
+    if not exp_tokens:
+        return 1.0
+    got = set(compare_text(transcript).split())
+    hit = sum(1 for t in exp_tokens if t in got)
+    return hit / len(exp_tokens)
 
 
 def equivalence_compare(expected: str, actual: str) -> dict[str, Any]:
