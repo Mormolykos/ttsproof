@@ -96,6 +96,11 @@ ttsproof regress baseline/report.json current/report.json --tolerance 1.0
 ttsproof compare xtts/report.json fish/report.json kokoro/report.json
 ```
 
+### Testing closed-source models (ElevenLabs, OpenAI, …) via SpeechSDK
+You can benchmark commercial/closed-source models using [SpeechSDK](https://speechsdk.dev/). See our [SpeechSDK integration example](examples/speechsdk/README.md) for a ready-to-use wrapper script.
+
+*Integration suggested by u/pmarks98 (Jellypod / SpeechSDK).*
+
 ## Quickstart
 
 **Check one file (CLI):**

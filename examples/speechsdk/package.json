@@ -1,0 +1,8 @@
+{
+  "name": "speechsdk-ttsproof-example",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@speech-sdk/core": "latest"
+  }
+}
