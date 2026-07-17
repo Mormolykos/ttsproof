@@ -70,6 +70,13 @@ ORDINALS = {
     30: "thirtieth", 31: "thirty first",
 }
 
+# Thousands separator inside a number: "1,000" -> "1000". Stripped before
+# classification so grouped numbers reach the `number` path instead of the
+# generic `\b\d+\b` fallback, which would split on the comma and read "1,000"
+# as "one" + "zero". The lookahead requires exactly three following digits, so
+# comma-as-punctuation ("In 1995, we shipped", "options 1,2,3") is untouched.
+THOUSANDS_SEPARATOR = re.compile(r"(?<=\d),(?=\d{3}(?!\d))")
+
 
 def plain_token(text: str) -> str:
     return re.sub(r"^[\s\"']+|[\s.!?,;:\"']+$", "", str(text or "")).strip()
@@ -224,6 +231,7 @@ def normalize_text(text: str, category: str = "") -> str:
         .replace("‘", "'").replace("’", "'")
         .replace("…", "...")
     )
+    out = THOUSANDS_SEPARATOR.sub("", out)
     text_type = classify_input(out, category)
     token = plain_token(out)
 
