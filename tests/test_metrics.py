@@ -39,3 +39,12 @@ def test_real_mismatch_not_equivalent():
 
 def test_compare_text_canonicalizes_numbers():
     assert compare_text("I have 2 cats") == compare_text("I have two cats")
+
+
+def test_grouped_number_equivalence():
+    # ASR writes "1,000"; the expected text expands to "one thousand". A correct
+    # utterance must not hard-fail on the thousands separator alone.
+    eq = equivalence_compare("one thousand", "1,000")
+    assert eq["equivalent"]
+    assert wer(eq["expected_cmp"], eq["actual_cmp"]) == 0.0
+    assert compare_text("1,000") == compare_text("1000") == "one thousand"
