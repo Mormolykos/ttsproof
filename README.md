@@ -28,6 +28,9 @@ and published as a citable technical report:
 > **An Automated Failure-Mode QA Framework for Neural Text-to-Speech Systems**
 > DOI: [10.5281/zenodo.20757553](https://doi.org/10.5281/zenodo.20757553) (CC-BY-4.0)
 
+The headline results are browsable right here in the repo — **[RESULTS.md](RESULTS.md)**
+(no download needed); the full report with per-sample data is at the DOI above.
+
 ## Install
 
 ```bash
