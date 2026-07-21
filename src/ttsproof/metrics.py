@@ -113,6 +113,90 @@ def _canonical_acronym_phrases(text: str) -> str:
     return out
 
 
+# --- Numeral-literal + context-gated roman canonicalization -----------------
+# These run BEFORE compare_text lowercases/strips, so casing is available.
+# They are applied by call site (equivalence_compare = strict, keyword_coverage
+# = keywords) so each fix only touches the policy it is meant for.
+
+# words that put a following (>=2-char) roman token into a roman/regnal reading
+ROMAN_CONTEXT = {
+    "chapter", "section", "part", "book", "act", "scene", "volume", "vol",
+    "canto", "appendix", "figure", "table", "number", "no", "war", "bowl",
+    "olympiad", "dynasty", "pope", "saint", "st", "king", "queen", "emperor",
+    "empress", "tsar", "sultan", "louis", "henry", "george", "edward",
+    "william", "richard", "charles", "elizabeth", "james", "philip",
+    "ferdinand", "frederick", "christian", "gustav", "carl", "olav", "harald",
+    "benedict", "pius", "paul", "john", "gregory", "leo", "clement", "urban",
+    "innocent", "year", "class", "mark", "type", "phase", "level", "grade",
+    "world",
+}
+# capitalized words that must NOT count as a proper-noun context trigger
+_FUNCTION_WORDS = {
+    "my", "the", "a", "an", "of", "size", "this", "that", "your", "our", "his",
+    "her", "its", "their", "in", "on", "at", "to", "is", "was", "it", "and",
+    "or", "for", "with",
+}
+_ROMAN_RE = re.compile(r"^M{0,4}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$")
+_ROMAN_VALUE = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+_ORDINAL_TO_CARDINAL = {
+    "first": "one", "second": "two", "third": "three", "fourth": "four",
+    "fifth": "five", "sixth": "six", "seventh": "seven", "eighth": "eight",
+    "ninth": "nine", "tenth": "ten", "eleventh": "eleven", "twelfth": "twelve",
+    "thirteenth": "thirteen", "fourteenth": "fourteen", "fifteenth": "fifteen",
+    "sixteenth": "sixteen", "seventeenth": "seventeen", "eighteenth": "eighteen",
+    "nineteenth": "nineteen", "twentieth": "twenty", "thirtieth": "thirty",
+}
+
+
+def _roman_to_int(numeral: str) -> int:
+    total = prev = 0
+    for ch in reversed(numeral):
+        value = _ROMAN_VALUE[ch]
+        total += -value if value < prev else value
+        prev = max(prev, value)
+    return total
+
+
+def _is_proper_noun(token: str) -> bool:
+    return bool(re.match(r"^[A-Z][a-z]+$", token)) and token.lower() not in _FUNCTION_WORDS
+
+
+def _roman_context_ok(core: str, prev_core: str) -> bool:
+    """A well-formed roman expands only in context, AND only when it is >=2
+    chars. A single roman letter (C/D/I/L/M/V/X) is too ambiguous to expand
+    ('Vitamin C', 'Model X', 'Figure X', 'Section C', the pronoun 'I') — and it
+    never needs to, because keyword_coverage already drops <2-char tokens
+    ('Act V' passes on {act, scene, two} without expanding the 'V')."""
+    if not prev_core or len(core) < 2:
+        return False
+    return prev_core.lower() in ROMAN_CONTEXT or _is_proper_noun(prev_core)
+
+
+def expand_numerals_in_context(text: str) -> str:
+    """In a roman/regnal context, (a) expand a well-formed roman numeral to its
+    cardinal words and (b) reconcile a spelled ordinal ('the Eighth') to the
+    same cardinal, so 'Henry VIII' == 'Henry the Eighth'. Context-gated so
+    unrelated capitals ('Vitamin C', 'She came first') are untouched."""
+    tokens = str(text or "").split()
+    out: list[str] = []
+    for i, token in enumerate(tokens):
+        core = re.sub(r"^[^A-Za-z]+|[^A-Za-z]+$", "", token)
+        j = i - 1
+        if j >= 0 and re.sub(r"[^A-Za-z]", "", tokens[j]).lower() == "the":
+            j -= 1  # look past an intervening "the" (Henry the Eighth)
+        prev_core = re.sub(r"[^A-Za-z]", "", tokens[j]) if j >= 0 else ""
+        if (core.isupper() and _ROMAN_RE.match(core) and _roman_to_int(core) > 0
+                and _roman_context_ok(core, prev_core)):
+            out.append(token.replace(core, number_to_words(_roman_to_int(core))))
+            continue
+        if (core.lower() in _ORDINAL_TO_CARDINAL
+                and (prev_core.lower() in ROMAN_CONTEXT or _is_proper_noun(prev_core))):
+            out.append(token.replace(core, _ORDINAL_TO_CARDINAL[core.lower()]))
+            continue
+        out.append(token)
+    return " ".join(out)
+
+
 def compare_text(text: str) -> str:
     """Canonical spoken form used on both sides of the comparison."""
     normalized = _preprocess_numeric_times(str(text or ""))
@@ -135,11 +219,11 @@ def keyword_coverage(expected: str, transcript: str) -> float:
     instead of exact spoken-form matching, the key content words/digits must
     survive the TTS -> ASR round trip.
     """
-    exp_tokens = [t for t in compare_text(expected).split()
+    exp_tokens = [t for t in compare_text(expand_numerals_in_context(expected)).split()
                   if len(t) >= 2 and t not in _STOPWORDS]
     if not exp_tokens:
         return 1.0
-    got = set(compare_text(transcript).split())
+    got = set(compare_text(expand_numerals_in_context(transcript)).split())
     hit = sum(1 for t in exp_tokens if t in got)
     return hit / len(exp_tokens)
 
