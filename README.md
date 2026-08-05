@@ -178,4 +178,4 @@ nothing gets silently mislabeled.
 
 ## License
 
-MIT © Panagiotis Gkilis — [portfolio](https://tts.bedvibe.studio/portfolio/) · part of the *Proof* family with [BookProof](https://tts.bedvibe.studio/bookproof/)
+MIT © Panagiotis Gkilis — [portfolio](https://tts.bedvibe.studio/portfolio/) · [engineering notebook](https://ai.bedvibe.studio/) · part of the *Proof* family with [BookProof](https://tts.bedvibe.studio/bookproof/)
