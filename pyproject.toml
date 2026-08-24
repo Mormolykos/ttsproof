@@ -20,6 +20,8 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  # 3.13 is claimed because CI actually runs it, not the other way round.
+  "Programming Language :: Python :: 3.13",
   "Topic :: Multimedia :: Sound/Audio :: Speech",
   "Topic :: Software Development :: Quality Assurance",
 ]
@@ -30,7 +32,10 @@ dependencies = [
 
 [project.optional-dependencies]
 asr = ["faster-whisper>=1.0"]
-dev = ["pytest>=8.0"]
+# The whole gate has to be installable with the project rather than assumed
+# present on the machine that runs it. pyyaml is only used by `scripts/ci.py
+# run`, which reads .github/workflows/ci.yml to replay CI locally.
+dev = ["pytest>=8.0", "ruff>=0.16", "mypy>=2.3", "pyyaml>=6", "build>=1.2", "twine>=6"]
 
 [project.urls]
 Homepage = "https://github.com/Mormolykos/ttsproof"
@@ -45,3 +50,66 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# This is a src-layout package, and before CI existed a fresh clone could not
+# run its own tests: all four test modules failed at collection with
+# ModuleNotFoundError unless ttsproof was already installed. Nothing in the
+# repository said so. `pythonpath` fixes the clone; CI installs the package as
+# well, so both paths are exercised - see the `clone` job in ci.yml.
+pythonpath = ["src"]
+
+# The ruleset is chosen, not inherited, and it is the same set the sibling
+# libraries run. ruff's defaults report 16 findings here; several are opinions
+# that contradict deliberate choices in this codebase, so the list below is the
+# subset where a violation would be a defect.
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+extend-exclude = ["build", "dist", ".venv"]
+
+[tool.ruff.lint]
+select = [
+  "E",       # pycodestyle errors
+  "F",       # pyflakes: undefined names, unused imports
+  "I",       # import ordering
+  "B",       # bugbear: real bug patterns
+  "RUF013",  # implicit Optional - `x: str = None` is a lie about the type
+  "S110",    # try-except-pass: a silently swallowed failure
+]
+# Message strings are the tool's output and are asserted in tests; reflowing
+# them to satisfy a column limit risks changing behaviour to satisfy a ruler.
+ignore = ["E501"]
+
+# NOT selected, deliberately:
+#
+#   BLE001 (blind-except) - audio.py, asr.py and report_html.py catch broad
+#     exceptions on purpose: they read files and drive decoders that fail in
+#     ways this package cannot enumerate, and a narrow except would let an
+#     unforeseen error escape as a traceback instead of a recorded finding.
+#     S110 is selected instead: catching broadly is fine, catching and
+#     *passing* is not.
+
+# Type checking arrived with CI, on a codebase written without it. The level
+# is chosen by measurement: mypy's defaults reported 5 errors here, all of them
+# missing stubs for third-party packages, and `--strict` reported 58. The
+# defaults are enforced; strict is the ratchet, not today's bar. The sibling
+# spkproof runs strict because there it measured at six errors, not because
+# strictness is a house style. See docs/adr/001.
+[tool.mypy]
+# 3.12, not the 3.10 floor, and that is forced rather than chosen. numpy ships
+# type stubs that use PEP 695 `type` statements, and mypy refuses to parse them
+# under `python_version = "3.10"` - "Type statement is only supported in Python
+# 3.12 and greater", one error, no further checking. So the floor is enforced
+# by the test matrix, which actually runs 3.10, and mypy checks types.
+python_version = "3.12"
+files = ["src/ttsproof"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# numpy ships its own types; soundfile and faster-whisper do not, and
+# faster-whisper is an optional extra imported inside the function that needs
+# it so that a missing install is a clear message rather than an ImportError at
+# startup. The checker has to be told the same thing.
+[[tool.mypy.overrides]]
+module = ["soundfile.*", "faster_whisper.*"]
+ignore_missing_imports = true

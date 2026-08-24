@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from .config import Config, DEFAULT
+from .config import DEFAULT, Config
 from .normalize import SHORT_TYPES
 
 
@@ -87,7 +87,9 @@ def _loop_suspected(mono, sr: int, np) -> bool:
     if len(chunks) < 3:
         return False
     similar = 0
-    for left, right in zip(chunks, chunks[1:]):
+    # strict=False is the correct value, not a silencer: this is a pairwise
+    # walk, so the second sequence is deliberately one shorter than the first.
+    for left, right in zip(chunks, chunks[1:], strict=False):
         left = left - float(np.mean(left))
         right = right - float(np.mean(right))
         denom = float(np.linalg.norm(left) * np.linalg.norm(right) + 1e-12)

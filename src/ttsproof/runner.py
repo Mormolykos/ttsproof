@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from .audio import check_wav
-from .config import Config, DEFAULT
+from .config import DEFAULT, Config
 from .metrics import cer, equivalence_compare, keyword_coverage, wer
 from .normalize import classify_input, normalize_text
 

@@ -10,9 +10,8 @@ Text-to-Speech Systems" — DOI 10.5281/zenodo.20757553.
 
 from .audio import AudioReport, check_wav
 from .cases import CORPUS_VERSION, builtin_cases, list_categories, write_jsonl
-from .config import Config, DEFAULT
-from .metrics import (cer, compare_text, equivalence_compare, keyword_coverage,
-                      levenshtein, wer)
+from .config import DEFAULT, Config
+from .metrics import cer, compare_text, equivalence_compare, keyword_coverage, levenshtein, wer
 from .normalize import classify_input, is_vocalization, normalize_text, retry_text
 from .runner import (
     category_scores,

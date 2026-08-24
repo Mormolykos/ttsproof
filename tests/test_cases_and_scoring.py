@@ -1,12 +1,10 @@
 """Corpus integrity + policy scoring + regression math."""
 
-import json
 
 import numpy as np
 import soundfile as sf
 
-from ttsproof import (builtin_cases, category_scores, keyword_coverage,
-                      list_categories, qa_sample, regression, summarize)
+from ttsproof import builtin_cases, category_scores, keyword_coverage, list_categories, qa_sample, regression, summarize
 
 SR = 24000
 

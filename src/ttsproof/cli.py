@@ -21,8 +21,7 @@ from pathlib import Path
 
 from . import __version__
 from .cases import CORPUS_VERSION, builtin_cases, list_categories, write_jsonl
-from .runner import (compare_reports, load_cases_jsonl, qa_pairs, qa_sample,
-                     qa_synthesize, regression, write_reports)
+from .runner import compare_reports, load_cases_jsonl, qa_pairs, qa_sample, qa_synthesize, regression, write_reports
 
 
 def _add_asr_args(parser: argparse.ArgumentParser) -> None:
@@ -74,6 +73,12 @@ def _print_scoreboard(report: dict) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="ttsproof",
                                      description="Automated failure-mode QA for TTS output.")
+    # Until this line, `ttsproof --version` exited 2 with an argparse usage
+    # error, because a required subcommand is checked before any flag: the one
+    # question every packaging tool and every bug report asks first had no
+    # answer. Both sibling libraries answered it. Found by the CI job that
+    # installs the built wheel into a clean environment and asks it to speak.
+    parser.add_argument("--version", action="version", version=f"ttsproof {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_check = sub.add_parser("check", help="Structural checks on a single wav file.")

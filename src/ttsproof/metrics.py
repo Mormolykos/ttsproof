@@ -15,7 +15,7 @@ import re
 import unicodedata
 from typing import Any
 
-from .normalize import normalize_text, number_to_words, ONES
+from .normalize import normalize_text, number_to_words
 
 
 def _fold_diacritics(text: str) -> str:
