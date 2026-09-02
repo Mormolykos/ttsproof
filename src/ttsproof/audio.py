@@ -19,13 +19,31 @@ from .config import DEFAULT, Config
 from .normalize import SHORT_TYPES
 
 
+def _round(value: float | None, places: int) -> float | None:
+    """None survives rounding. A measurement that was not taken stays absent."""
+    return None if value is None else round(value, places)
+
+
 @dataclass
 class AudioReport:
     audio_path: str
-    duration_sec: float = 0.0
-    max_silence_sec: float = 0.0
-    peak: float = 0.0
-    rms: float = 0.0
+    # Every number here is None until it is measured, and None reaches the
+    # report as a blank cell (CSV) or null (JSON) -- the same way ttsproof
+    # already reports WER when no ASR ran.
+    #
+    # They defaulted to 0.0 until 2026-09-02, and the sharpest case had no error
+    # beside it to give it away: a clip SHORTER than the 30 ms tail window is
+    # read fine, skips the tail block below, and reported
+    # `tail_rms_last_30ms: 0.0` and `tail_peak_last_30ms: 0.0` with
+    # `audio_ok: true` and no error at all. Nothing in the row distinguished a
+    # tail measured as silent from a tail never measured. The unreadable-file
+    # paths carry an error string, so those zeros were at least recoverable by a
+    # reader who looked -- but the numbers themselves still claimed a
+    # measurement, and a chart or a CSV join reads the number, not the error.
+    duration_sec: float | None = None
+    max_silence_sec: float | None = None
+    peak: float | None = None
+    rms: float | None = None
     empty_audio: bool = False
     too_short: bool = False
     too_long: bool = False
@@ -34,8 +52,8 @@ class AudioReport:
     clipping: bool = False
     loop_suspicion: bool = False
     tail_artifact_suspected: bool = False
-    tail_rms_last_30ms: float = 0.0
-    tail_peak_last_30ms: float = 0.0
+    tail_rms_last_30ms: float | None = None
+    tail_peak_last_30ms: float | None = None
     errors: list[str] = field(default_factory=list)
 
     @property
@@ -53,10 +71,10 @@ class AudioReport:
             "clipping": self.clipping,
             "loop_suspicion": self.loop_suspicion,
             "tail_artifact_suspected": self.tail_artifact_suspected,
-            "tail_rms_last_30ms": round(self.tail_rms_last_30ms, 6),
-            "tail_peak_last_30ms": round(self.tail_peak_last_30ms, 6),
-            "duration_sec": round(self.duration_sec, 4),
-            "max_silence_sec": round(self.max_silence_sec, 4),
+            "tail_rms_last_30ms": _round(self.tail_rms_last_30ms, 6),
+            "tail_peak_last_30ms": _round(self.tail_peak_last_30ms, 6),
+            "duration_sec": _round(self.duration_sec, 4),
+            "max_silence_sec": _round(self.max_silence_sec, 4),
             "audio_errors": "; ".join(self.errors),
         }
 
